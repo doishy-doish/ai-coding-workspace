@@ -1,96 +1,202 @@
-# AETHER — Andrale Voxel
+# Andrale Misquitta — Production Portfolio
 
-AETHER is a browser-based voxel engine and co-op world built around a hand-written WebAssembly terrain and meshing kernel. The live generator is a single self-contained Perchance application of roughly 63,000 lines, with JavaScript owning the game layer and WAT/WASM owning terrain generation and mesh production.
+A curated collection of architectural samples from five production systems: **~100k+ lines of code** across **5 major projects**, emphasizing patterns, infrastructure, measured performance, and design decisions.
 
-## Live Demo
+**All systems are live.** Follow the links below to explore each project.
 
-[Try AETHER / Andrale Voxel](https://perchance.org/andrale-voxel)
+---
 
-## What this project demonstrates
+## Projects
 
-- Hand-written WebAssembly Text (WAT) compiled with wabt
-- Deterministic, seed-driven world generation
-- FBM/value noise, spline height fields, moisture, caves and aquifers
-- Geology-inspired rock provinces and host-rock ore generation
-- Greedy meshing with baked ambient occlusion
-- Packed 32-bit vertex data and zero-copy WASM-to-GPU transfer
-- Streaming chunks with live neighbour halos
-- Time-sliced water cellular automata
-- WebGL rendering, co-op relay networking and offline fallback
-- Measured memory, latency and saturation budgets
+### 1. **AI Character Chat** — Multi-provider AI orchestration
+*Local-first AI roleplay with vector memory, image generation, and intelligent provider routing*
 
-## Architecture
+- **Live:** [Perchance AI Character Chat](https://perchance.org/andrale-ai-character-chat)
+- **Scale:** ~22,000 LoC + 75 modules
+- **Platform:** Perchance
+- **Key patterns:** Multi-provider router with circuit breakers, token-budget-aware prompt assembly, adaptive performance tuning, local-first IndexedDB storage
+- **Stack:** JavaScript (no framework), three.js, IndexedDB, Dexie, Web Audio API
 
-### WASM kernel
+**What it shows:**
+- Failover routing with per-lane circuit breakers and exponential backoff
+- Token budgeting and prefix-cache-friendly prompt assembly
+- Adaptive timeouts (hedged request pattern)
+- Chat-protect pacing (off-path work waits for reply to finish)
+- Superseded-work cancellation (stop in-flight calls when user types)
+- Local search indexing + semantic vector memory
+- Device profiling and adaptive quality tuning
+- Multi-provider key rotation
 
-The kernel owns terrain generation and mesh production. It exposes the generator and mesher through linear memory, allowing JavaScript to provide chunk buffers and upload packed output to the renderer without converting every vertex into an object-heavy JavaScript representation.
+**Repository:** [nova-ai-assistant](https://github.com/doishy-doish/nova-ai-assistant)
 
-The kernel includes:
+---
 
-- Seeded noise and height-field functions
-- Versioned world-generation dispatch
-- Three-dimensional density terrain and cave functions
-- Greedy quad emission
-- Ambient-occlusion sampling
-- Packed vertex encoding
+### 2. **NOVA** — Personal AI Assistant
+*Client-side assistant with immutable Loyalty Kernel, supervision layer, and self-audit*
 
-### JavaScript game layer
+- **Live:** [Perchance NOVA](https://perchance.org/andrale-agentic-chat)
+- **Scale:** ~7,600 LoC
+- **Platform:** Perchance
+- **Key patterns:** Immutable directive injection, action supervision, self-audit, cross-device sync, long-term memory with semantic recall
+- **Stack:** JavaScript, Web Audio API, IndexedDB, WebSocket relay
 
-JavaScript owns the `ChunkStore`, edits, streaming, renderer, player, entities, audio, UI and network client. Chunk data remains accessible to the game layer, while the WASM kernel handles the hot terrain and meshing paths.
+**What it shows:**
+- Loyalty Kernel: unalterable core directives that guide every action
+- Supervision layer: risky actions flagged for user approval
+- Reflection pass: audit trail checked against kernel (self-audit)
+- Long-term memory: facts, episodic notes, moods, patterns
+- Tool grammar: plain-text action grammar for model addressability
+- Cross-device sync: WebSocket relay with encrypted backups
+- Procedural audio synthesis (weather, news, stingers)
 
-### Determinism and compatibility
+**Repository:** [nova-ai-assistant](https://github.com/doishy-doish/nova-ai-assistant)
 
-World generation is derived from `(seed, cell)` wherever possible. A world-generation version gate keeps old saves stable: legacy versions remain byte-identical instead of being silently reshaped by later generator improvements.
+---
 
-## Selected engineering details
+### 3. **Arena Protocol** — 3D FPS Wave Arena
+*Vanilla JavaScript voxel arena with binary co-op relay and procedural audio*
 
-### Chunk streaming
+- **Live:** [Perchance Arena Protocol](https://perchance.org/andrale-arena-protocol)
+- **Scale:** ~2,162 LoC (single file)
+- **Platform:** Perchance
+- **Key patterns:** Seeded procedural generation, binary protocol (35-byte frames), responsive netcode (relay-only, never simulates), zero-allocation hot paths
+- **Stack:** three.js 0.177.0, vanilla ES module, Canvas 2D HUD, Web Audio API, Perchance relay
 
-Chunks use 18×66×18 storage at the original world height, including a one-block x/z halo. Halo cells are refreshed from live neighbours when meshing, so edits remain consistent regardless of chunk load order.
+**What it shows:**
+- Seeded terrain (mulberry32 PRNG ensures all clients generate identical maze)
+- Three enemy types (Grunt, Runner, Tank) with line-of-sight AI
+- Hitscan combat, recoil, screen shake, tracers, impact feedback
+- Procedural audio: all sounds synthesized at runtime (zero assets)
+- Binary netcode: 35 bytes per position update
+- Responsive relay: server reflects state, never simulates
+- Offline graceful: solo play if relay unavailable, exponential-backoff reconnect
+- Canvas 2D HUD: crosshair, hitmarkers, floating damage numbers, minimap
 
-### Packed vertices
+**Repository:** (Perchance-only; no separate GitHub repo)
 
-A vertex is represented by one packed integer containing local position, material code, normal and light/AO information. This keeps the mesh representation compact and reduces transfer and allocation overhead.
+---
 
-### Greedy meshing
+### 4. **Indian Tax Flashcards** — FSRS-6 Study Engine + AI Teacher
+*Spaced repetition study app grounded in official Union Budget documents*
 
-The mesher builds face masks for each axis and direction, merges equal cells into quads, samples corner occlusion and emits indexed geometry. Vertex and index buffers have explicit capacity checks; overflow causes a controlled retry rather than corrupting memory.
+- **Live:** [Perchance Indian Tax Flashcards](https://perchance.org/andrale-tax-flashcards)
+- **Scale:** ~4,600 LoC
+- **Platform:** Perchance
+- **Key patterns:** Pure tutor core (testable), async adapter layer, bounded storage (14–40 KB unbounded), cache-friendly prompts, concept-based diagnosis
+- **Stack:** JavaScript, FSRS-6 scheduler (Anki default), Perchance ai-text-plugin, kv-plugin
 
-### Geology and deposits
+**What it shows:**
+- FSRS-6.0 scheduler (Free Spaced Repetition Scheduler) with published default parameters
+- ~9 categories: slabs, IT Act 2025, deductions, TDS, capital gains, filing, Finance Act 2026, GST, fiscal
+- AI teacher layer: diagnoses weak concepts, builds mnemonics, Socratic follow-ups
+- Concept graph: keyword extraction, law-family links, recency-weighted EMA
+- Deterministic drill selection from weak categories
+- Bounded state: old events folded into accumulators (no unbounded growth)
+- Cache-friendly prompts: single prefix-cache-friendly shape shared across calls
+- Practical corner: real-world gotchas verified against official sources
+- New & pending laws tracker with status badges
 
-Later world-generation versions add province-aware rock columns, kimberlite pipes, host-rock restrictions and deterministic deposit objects. Ore bodies are generated from coarse lattice anchors and evaluated at chunk boundaries without requiring cross-chunk state.
+**Repository:** (Perchance-only; no separate GitHub repo)
 
-### Water simulation
+---
 
-Water uses a time-sliced cellular automaton with per-chunk slots and cross-chunk edge records. The simulation arena is dimensioned from the streamer’s measured maximum resident chunk set rather than allocated without a bound.
+### 5. **AETHER** — Voxel Engine with Hand-Written WASM Kernel
+*Browser-based voxel world with deterministic terrain generation and co-op multiplayer*
 
-## Repository contents
+- **Live:** [Perchance AETHER](https://perchance.org/andrale-voxel)
+- **Scale:** ~63,000 LoC (integrated monolith)
+- **Platform:** Perchance
+- **Key patterns:** Pure-function terrain (seed + coords), frozen v1 generator, greedy meshing with baked AO, streaming chunks with halos, measured memory budgets
+- **Stack:** WebAssembly (WAT), JavaScript, three.js, Web Audio API, Perchance relay
 
-This repository is a portfolio excerpt, not a duplicate of the deployed monolith. It contains representative documentation and source excerpts:
+**What it shows:**
+- **WASM kernel (WAT):** Terrain generation, meshing, water simulation all in WebAssembly
+- **Deterministic generation:** Seeded pure functions of (seed, global_pos) ensure chunk boundaries align
+- **Version gates:** Frozen v1 output (byte-identical forever) with upgradeable later versions
+- **Geology system:** Rock provinces, 3D density terrain, caves, aquifers, kimberlite pipes
+- **Ore genesis:** 17 deposit types with host-rock rules (coal in sediment, diamonds in metamorphic)
+- **Greedy mesher:** Face masks per axis/direction, quad merging, corner AO sampling
+- **Packed vertices:** 4-byte i32 encoding (pos, code, normal, light/AO)
+- **Streaming chunks:** 18×66×18 interior + 1-block halo, neighbor sync at mesh time
+- **Water CA:** Time-sliced cellular automaton, 384 parallel slots
+- **Binary relay:** 35-byte position frames, server reflects (never simulates)
+- **Procedural audio:** All synthesis at runtime
+- **Performance:** ~2.0 ms/chunk average (gen + mesh + render setup)
 
-```text
-README.md
-ARCHITECTURE.md
-MEMORY.md
-src/
-  world.wat
-  noise-and-height.wat
-  greedy-mesher.wat
-  world.js
+**Repository:** [ai-coding-workspace](https://github.com/doishy-doish/ai-coding-workspace) ← you are here
+
+---
+
+## Cross-Cutting Patterns
+
+Across all five projects:
+
+1. **Measured, not guessed** — Every optimization includes its measured impact
+2. **Deterministic where it matters** — Procedural generation frozen by version gates
+3. **Local-first** — All data lives client-side unless sync is explicit
+4. **Bounded state** — No unbounded growth of storage or frame time
+5. **No magic numbers** — Constants computed from first principles or empirically
+6. **Audit trails** — Every consequential action is logged and inspectable
+7. **Graceful degradation** — Work offline, reconnect smoothly, never wedge
+8. **Cache-aware design** — Prompts, storage, network shaped for prefix caches
+9. **Production-grade error handling** — Circuit breakers, exponential backoff, soft failures
+10. **Testability** — Core logic is pure; infrastructure is thin
+
+---
+
+## Technical Highlights
+
+| Project | Language | Scale | Key Innovation |
+| --- | --- | --- | --- |
+| AI Character Chat | JS + ES modules | 22k + 75 modules | Multi-provider router with circuit breakers |
+| NOVA | JS + web APIs | 7.6k | Immutable Loyalty Kernel + supervision |
+| Arena Protocol | JS + three.js | 2.2k | Seeded co-op FPS, binary relay |
+| Tax Flashcards | JS + FSRS-6 | 4.6k | Concept-based diagnosis + bounded storage |
+| AETHER | WAT + JS | 63k | Hand-written WASM kernel, deterministic terrain |
+
+---
+
+## How to Explore
+
+1. **Start with the live demos** — All systems are running at the Perchance links above
+2. **Read the architecture notes** — Each project includes ARCHITECTURE.md in this repo
+3. **Study the source excerpts** — Real code (unmodified except where marked [PORTFOLIO-REDACT])
+4. **Check the patterns** — Each project demonstrates distinct design approaches
+
+---
+
+## About the Author
+
+**Andrale Misquitta** — Full-stack engineer specializing in:
+
+- Production AI systems (multi-provider routing, adaptive quality, local-first storage)
+- Game engines & rendering (voxel terrain, netcode, procedural synthesis)
+- Algorithm design (spaced repetition, prompt fitting, circuit breakers)
+- WebAssembly & performance optimization
+- Client-side architecture at scale
+
+**GitHub:** [@doishy-doish](https://github.com/doishy-doish)  
+**Repositories:**
+- [nova-ai-assistant](https://github.com/doishy-doish/nova-ai-assistant)
+- [ai-character-chat](https://github.com/doishy-doish/ai-character-chat)
+- [ai-coding-workspace](https://github.com/doishy-doish/ai-coding-workspace) ← portfolio hub
+
+---
+
+## File Structure in This Repo
+
+```
+ai-coding-workspace/
+├── README.md                         ← you are here
+├── portfolio-excerpts-part1.md       Projects 1 (AI Character Chat) + 2 (NOVA)
+├── portfolio-excerpts-part2.md       Projects 3–5 (Arena, Tax, AETHER)
+└── docs/
+    ├── PATTERNS.md                   Cross-cutting design patterns
+    ├── MEASURED.md                   Performance & memory budgets
+    └── PHILOSOPHY.md                 Why each decision was made
 ```
 
-The excerpts focus on the engine’s architecture and algorithms. The complete live application remains available through the public demo above.
+---
 
-## Performance and memory discipline
-
-The project is built around measurement rather than assumed budgets. The accompanying notes describe:
-
-- Linear-memory regions for terrain, mesh buffers and water simulation
-- Packed vertex and index capacities
-- Chunk mesh timings and stream counts
-- Water-slot sizing and resident-chunk limits
-- Version-gated changes that preserve legacy output
-
-## About
-
-Built by [Andrale Misquitta](https://github.com/doishy-doish) as an exploration of browser game engines, procedural generation, WebAssembly, rendering and deterministic simulation.
+**Last Updated:** 2026-10-01  
+**License:** MIT (for excerpts; live systems are proprietary Perchance generators)
