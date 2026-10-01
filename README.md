@@ -1,80 +1,96 @@
-# AI Coding Workspace
+# AETHER — Andrale Voxel
 
-A browser-first AI coding workspace built to explore developer tooling, AI-assisted software workflows, and product design for coding environments.
+AETHER is a browser-based voxel engine and co-op world built around a hand-written WebAssembly terrain and meshing kernel. The live generator is a single self-contained Perchance application of roughly 63,000 lines, with JavaScript owning the game layer and WAT/WASM owning terrain generation and mesh production.
 
-## Overview
+## Live Demo
 
-AI Coding Workspace is a portfolio project focused on the idea of combining AI assistance with a coding environment in the browser. The goal is to explore how an AI-powered developer tool could work in practice — not as a static demo, but as a functional workflow for writing, managing, and iterating on code in real time.
+[Try AETHER / Andrale Voxel](https://perchance.org/andrale-voxel)
 
-This project explores:
-- AI-assisted coding flows
-- browser-based product design for technical tools
-- workspace UX patterns
-- real-time state management and file handling
-- assistant-driven workflows for developer productivity
+## What this project demonstrates
 
-## What It Shows
+- Hand-written WebAssembly Text (WAT) compiled with wabt
+- Deterministic, seed-driven world generation
+- FBM/value noise, spline height fields, moisture, caves and aquifers
+- Geology-inspired rock provinces and host-rock ore generation
+- Greedy meshing with baked ambient occlusion
+- Packed 32-bit vertex data and zero-copy WASM-to-GPU transfer
+- Streaming chunks with live neighbour halos
+- Time-sliced water cellular automata
+- WebGL rendering, co-op relay networking and offline fallback
+- Measured memory, latency and saturation budgets
 
-- Browser-native developer tooling
-- AI-assisted workflow design
-- File and project navigation patterns
-- Editor-style product interaction
-- AI-powered product thinking for coding environments
-- Systems design for technical interfaces
+## Architecture
 
-## Core Ideas
+### WASM kernel
 
-- Help the user move from idea to implementation in a lightweight browser interface
-- Combine assistant responses with actual coding workspace behavior
-- Design a tool that feels like a product, not just a prototype
-- Explore how AI changes the structure of software development workflows
+The kernel owns terrain generation and mesh production. It exposes the generator and mesher through linear memory, allowing JavaScript to provide chunk buffers and upload packed output to the renderer without converting every vertex into an object-heavy JavaScript representation.
 
-## Architecture Highlights
+The kernel includes:
 
-- Workspace orchestration: editor, file state, output panels, and AI actions are structured around a single browser-first interaction model
-- AI workflow design: assistant actions are designed to support iterative coding tasks rather than one-off prompts
-- File and context management: the environment is built around navigating project structure and maintaining context across actions
-- State-driven UI: the interface models event flow, context switching, and live content updates
-- Product thinking: this project focuses on developer experience, not only raw functionality
+- Seeded noise and height-field functions
+- Versioned world-generation dispatch
+- Three-dimensional density terrain and cave functions
+- Greedy quad emission
+- Ambient-occlusion sampling
+- Packed vertex encoding
 
-## Tech Stack
+### JavaScript game layer
 
-- JavaScript
-- HTML / CSS
-- Browser APIs
-- Dynamic UI composition
-- AI API integration
-- Frontend state management
+JavaScript owns the `ChunkStore`, edits, streaming, renderer, player, entities, audio, UI and network client. Chunk data remains accessible to the game layer, while the WASM kernel handles the hot terrain and meshing paths.
 
-## Why This Matters for a CV
+### Determinism and compatibility
 
-This project is useful for roles involving:
-- software engineering
-- frontend development
-- AI-powered tooling
-- developer experience
-- product engineering for technical systems
+World generation is derived from `(seed, cell)` wherever possible. A world-generation version gate keeps old saves stable: legacy versions remain byte-identical instead of being silently reshaped by later generator improvements.
 
-It demonstrates the ability to think beyond a simple demo and design a system that reflects real workflows for developers working with AI assistance.
+## Selected engineering details
 
-## Live Project / Notes
+### Chunk streaming
 
-This project is intended as a portfolio and product exploration project. It is designed to showcase practical browser-based AI tool design and the kind of workflow thinking used in AI-native developer products.
+Chunks use 18×66×18 storage at the original world height, including a one-block x/z halo. Halo cells are refreshed from live neighbours when meshing, so edits remain consistent regardless of chunk load order.
 
-## Local Run
+### Packed vertices
 
-1. Clone the repository
-2. Serve it locally with a lightweight static server
-3. Add any required config or API keys if the project is configured for live AI usage
+A vertex is represented by one packed integer containing local position, material code, normal and light/AO information. This keeps the mesh representation compact and reduces transfer and allocation overhead.
 
-Example:
+### Greedy meshing
 
-```bash
-python -m http.server 8000
-```
+The mesher builds face masks for each axis and direction, merges equal cells into quads, samples corner occlusion and emits indexed geometry. Vertex and index buffers have explicit capacity checks; overflow causes a controlled retry rather than corrupting memory.
 
-Then open:
+### Geology and deposits
+
+Later world-generation versions add province-aware rock columns, kimberlite pipes, host-rock restrictions and deterministic deposit objects. Ore bodies are generated from coarse lattice anchors and evaluated at chunk boundaries without requiring cross-chunk state.
+
+### Water simulation
+
+Water uses a time-sliced cellular automaton with per-chunk slots and cross-chunk edge records. The simulation arena is dimensioned from the streamer’s measured maximum resident chunk set rather than allocated without a bound.
+
+## Repository contents
+
+This repository is a portfolio excerpt, not a duplicate of the deployed monolith. It contains representative documentation and source excerpts:
 
 ```text
-http://localhost:8000
+README.md
+ARCHITECTURE.md
+MEMORY.md
+src/
+  world.wat
+  noise-and-height.wat
+  greedy-mesher.wat
+  world.js
 ```
+
+The excerpts focus on the engine’s architecture and algorithms. The complete live application remains available through the public demo above.
+
+## Performance and memory discipline
+
+The project is built around measurement rather than assumed budgets. The accompanying notes describe:
+
+- Linear-memory regions for terrain, mesh buffers and water simulation
+- Packed vertex and index capacities
+- Chunk mesh timings and stream counts
+- Water-slot sizing and resident-chunk limits
+- Version-gated changes that preserve legacy output
+
+## About
+
+Built by [Andrale Misquitta](https://github.com/doishy-doish) as an exploration of browser game engines, procedural generation, WebAssembly, rendering and deterministic simulation.
